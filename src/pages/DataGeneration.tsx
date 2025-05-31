@@ -4,31 +4,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
 interface MissionData {
   mission_id: string;
   drone_id: string;
   priority: number;
-  start_time: string;
-  end_time: string;
   waypoints: Array<{
-    lat: number;
-    lon: number;
-    alt: number;
-    timestamp: string;
+    x: number;
+    y: number;
+    z: number;
+    time: string;
   }>;
 }
 
 interface FlightData {
-  flight_id: string;
-  drone_id: string;
-  trajectory: Array<{
-    lat: number;
-    lon: number;
-    alt: number;
-    timestamp: string;
+  id: string;
+  waypoints: Array<{
+    x: number;
+    y: number;
+    z: number;
+    time: string;
   }>;
 }
 
@@ -38,34 +34,36 @@ const DataGeneration = () => {
     mission_id: '',
     drone_id: '',
     priority: 1,
-    start_time: '',
-    end_time: '',
     waypoints: []
   });
   
   const [simulatedFlights, setSimulatedFlights] = useState<FlightData[]>([]);
   const [currentFlight, setCurrentFlight] = useState<FlightData>({
-    flight_id: '',
-    drone_id: '',
-    trajectory: []
+    id: '',
+    waypoints: []
   });
 
+  // Parameters from your Python code
+  const [distanceThreshold, setDistanceThreshold] = useState(20);
+  const [timeTolerance, setTimeTolerance] = useState(1);
+  const [animateOption, setAnimateOption] = useState(false);
+
   const [waypointInput, setWaypointInput] = useState({
-    lat: 0,
-    lon: 0,
-    alt: 0,
-    timestamp: ''
+    x: 0,
+    y: 0,
+    z: 0,
+    time: ''
   });
 
   const [trajectoryInput, setTrajectoryInput] = useState({
-    lat: 0,
-    lon: 0,
-    alt: 0,
-    timestamp: ''
+    x: 0,
+    y: 0,
+    z: 0,
+    time: ''
   });
 
   const addWaypoint = () => {
-    if (!waypointInput.timestamp) {
+    if (!waypointInput.time) {
       toast({
         title: "Missing Timestamp",
         description: "Please provide a timestamp for the waypoint",
@@ -79,7 +77,7 @@ const DataGeneration = () => {
       waypoints: [...prev.waypoints, { ...waypointInput }]
     }));
 
-    setWaypointInput({ lat: 0, lon: 0, alt: 0, timestamp: '' });
+    setWaypointInput({ x: 0, y: 0, z: 0, time: '' });
     
     toast({
       title: "Waypoint Added",
@@ -88,7 +86,7 @@ const DataGeneration = () => {
   };
 
   const addTrajectoryPoint = () => {
-    if (!trajectoryInput.timestamp) {
+    if (!trajectoryInput.time) {
       toast({
         title: "Missing Timestamp",
         description: "Please provide a timestamp for the trajectory point",
@@ -99,28 +97,28 @@ const DataGeneration = () => {
 
     setCurrentFlight(prev => ({
       ...prev,
-      trajectory: [...prev.trajectory, { ...trajectoryInput }]
+      waypoints: [...prev.waypoints, { ...trajectoryInput }]
     }));
 
-    setTrajectoryInput({ lat: 0, lon: 0, alt: 0, timestamp: '' });
+    setTrajectoryInput({ x: 0, y: 0, z: 0, time: '' });
   };
 
   const addSimulatedFlight = () => {
-    if (!currentFlight.flight_id || !currentFlight.drone_id || currentFlight.trajectory.length === 0) {
+    if (!currentFlight.id || currentFlight.waypoints.length === 0) {
       toast({
         title: "Incomplete Flight Data",
-        description: "Please fill in flight ID, drone ID, and at least one trajectory point",
+        description: "Please fill in flight ID and at least one waypoint",
         variant: "destructive"
       });
       return;
     }
 
     setSimulatedFlights(prev => [...prev, { ...currentFlight }]);
-    setCurrentFlight({ flight_id: '', drone_id: '', trajectory: [] });
+    setCurrentFlight({ id: '', waypoints: [] });
     
     toast({
       title: "Flight Added",
-      description: `Flight ${currentFlight.flight_id} added to simulation`,
+      description: `Flight ${currentFlight.id} added to simulation`,
     });
   };
 
@@ -133,17 +131,20 @@ const DataGeneration = () => {
       
       if (response.ok) {
         const data = await response.json();
-        toast({
-          title: "Sample Data Generated",
-          description: "Sample mission and flight data have been generated",
-        });
-        // You can update the state with the generated data here
+        if (data.status === 'success') {
+          setPrimaryMission(data.data.primary_mission);
+          setSimulatedFlights(data.data.simulated_flights);
+          toast({
+            title: "Sample Data Generated",
+            description: "Sample mission and flight data have been loaded",
+          });
+        }
       }
     } catch (error) {
       console.error('Error generating sample data:', error);
       toast({
-        title: "Error",
-        description: "Failed to generate sample data",
+        title: "Backend Connection Failed",
+        description: "Make sure your Flask backend is running on port 5000",
         variant: "destructive"
       });
     }
@@ -165,7 +166,10 @@ const DataGeneration = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           primary_mission: primaryMission,
-          simulated_flights: simulatedFlights
+          simulated_flights: simulatedFlights,
+          distance_threshold: distanceThreshold,
+          time_tolerance: timeTolerance,
+          animate: animateOption
         })
       });
       
@@ -173,24 +177,26 @@ const DataGeneration = () => {
         const result = await response.json();
         toast({
           title: "Deconfliction Complete",
-          description: `Analysis complete. ${result.conflicts_found ? 'Conflicts detected!' : 'No conflicts found.'}`,
+          description: `Status: ${result.mission_status}. ${result.conflicts_found ? `${result.total_conflicts} conflicts detected!` : 'No conflicts found.'}`,
         });
         
         // Store result for later viewing
         localStorage.setItem('latest_simulation', JSON.stringify({
-          id: Date.now().toString(),
+          id: result.simulation_id,
           name: `Mission ${primaryMission.mission_id}`,
           timestamp: new Date().toISOString(),
           primary_mission: primaryMission,
           simulated_flights: simulatedFlights,
           result: result
         }));
+      } else {
+        throw new Error('Deconfliction failed');
       }
     } catch (error) {
       console.error('Error running deconfliction:', error);
       toast({
-        title: "Error",
-        description: "Failed to run deconfliction analysis",
+        title: "Backend Connection Failed",
+        description: "Make sure your Flask backend is running on port 5000",
         variant: "destructive"
       });
     }
@@ -200,11 +206,58 @@ const DataGeneration = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Data Generation</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Data Generation & Configuration</h1>
+            <p className="text-gray-600 mt-2">Configure drone missions and deconfliction parameters</p>
+          </div>
           <Button onClick={generateSampleData} variant="outline">
             Generate Sample Data
           </Button>
         </div>
+
+        {/* Configuration Parameters */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Deconfliction Parameters</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="distance_threshold">Distance Threshold (meters)</Label>
+              <Input
+                id="distance_threshold"
+                type="number"
+                value={distanceThreshold}
+                onChange={(e) => setDistanceThreshold(Number(e.target.value))}
+                placeholder="20"
+              />
+              <p className="text-sm text-gray-500 mt-1">Minimum safe distance between drones</p>
+            </div>
+            <div>
+              <Label htmlFor="time_tolerance">Time Tolerance (seconds)</Label>
+              <Input
+                id="time_tolerance"
+                type="number"
+                value={timeTolerance}
+                onChange={(e) => setTimeTolerance(Number(e.target.value))}
+                placeholder="1"
+              />
+              <p className="text-sm text-gray-500 mt-1">Temporal overlap tolerance</p>
+            </div>
+            <div>
+              <Label htmlFor="animate_option">Enable Animation</Label>
+              <div className="flex items-center space-x-2 mt-2">
+                <input
+                  id="animate_option"
+                  type="checkbox"
+                  checked={animateOption}
+                  onChange={(e) => setAnimateOption(e.target.checked)}
+                  className="rounded"
+                />
+                <span className="text-sm">Enable 2D animation</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Primary Mission */}
@@ -234,66 +287,49 @@ const DataGeneration = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="priority">Priority</Label>
-                  <Input
-                    id="priority"
-                    type="number"
-                    value={primaryMission.priority}
-                    onChange={(e) => setPrimaryMission(prev => ({ ...prev, priority: Number(e.target.value) }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="start_time">Start Time</Label>
-                  <Input
-                    id="start_time"
-                    type="datetime-local"
-                    value={primaryMission.start_time}
-                    onChange={(e) => setPrimaryMission(prev => ({ ...prev, start_time: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="end_time">End Time</Label>
-                  <Input
-                    id="end_time"
-                    type="datetime-local"
-                    value={primaryMission.end_time}
-                    onChange={(e) => setPrimaryMission(prev => ({ ...prev, end_time: e.target.value }))}
-                  />
-                </div>
+              <div>
+                <Label htmlFor="priority">Priority</Label>
+                <Input
+                  id="priority"
+                  type="number"
+                  value={primaryMission.priority}
+                  onChange={(e) => setPrimaryMission(prev => ({ ...prev, priority: Number(e.target.value) }))}
+                />
               </div>
 
               <div className="border-t pt-4">
                 <h4 className="font-semibold mb-3">Add Waypoint</h4>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   <Input
                     type="number"
-                    step="0.000001"
-                    placeholder="Latitude"
-                    value={waypointInput.lat}
-                    onChange={(e) => setWaypointInput(prev => ({ ...prev, lat: Number(e.target.value) }))}
+                    step="0.1"
+                    placeholder="X Position"
+                    value={waypointInput.x}
+                    onChange={(e) => setWaypointInput(prev => ({ ...prev, x: Number(e.target.value) }))}
                   />
                   <Input
                     type="number"
-                    step="0.000001"
-                    placeholder="Longitude"
-                    value={waypointInput.lon}
-                    onChange={(e) => setWaypointInput(prev => ({ ...prev, lon: Number(e.target.value) }))}
+                    step="0.1"
+                    placeholder="Y Position"
+                    value={waypointInput.y}
+                    onChange={(e) => setWaypointInput(prev => ({ ...prev, y: Number(e.target.value) }))}
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   <Input
                     type="number"
-                    placeholder="Altitude (m)"
-                    value={waypointInput.alt}
-                    onChange={(e) => setWaypointInput(prev => ({ ...prev, alt: Number(e.target.value) }))}
+                    step="0.1"
+                    placeholder="Z Position (altitude)"
+                    value={waypointInput.z}
+                    onChange={(e) => setWaypointInput(prev => ({ ...prev, z: Number(e.target.value) }))}
                   />
                   <Input
                     type="datetime-local"
-                    value={waypointInput.timestamp}
-                    onChange={(e) => setWaypointInput(prev => ({ ...prev, timestamp: e.target.value }))}
+                    value={waypointInput.time}
+                    onChange={(e) => setWaypointInput(prev => ({ ...prev, time: e.target.value }))}
                   />
                 </div>
-                <Button onClick={addWaypoint} className="mt-2 w-full" size="sm">
+                <Button onClick={addWaypoint} className="w-full" size="sm">
                   Add Waypoint
                 </Button>
               </div>
@@ -304,7 +340,7 @@ const DataGeneration = () => {
                 </div>
                 {primaryMission.waypoints.map((wp, index) => (
                   <div key={index} className="text-xs bg-gray-100 p-2 rounded mt-1">
-                    {wp.lat.toFixed(6)}, {wp.lon.toFixed(6)}, {wp.alt}m @ {new Date(wp.timestamp).toLocaleString()}
+                    ({wp.x}, {wp.y}, {wp.z}) @ {new Date(wp.time).toLocaleString()}
                   </div>
                 ))}
               </div>
@@ -314,83 +350,75 @@ const DataGeneration = () => {
           {/* Simulated Flights */}
           <Card>
             <CardHeader>
-              <CardTitle>Simulated Flights</CardTitle>
+              <CardTitle>Current Simulated Flight</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="flight_id">Flight ID</Label>
-                  <Input
-                    id="flight_id"
-                    value={currentFlight.flight_id}
-                    onChange={(e) => setCurrentFlight(prev => ({ ...prev, flight_id: e.target.value }))}
-                    placeholder="FLIGHT_001"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="sim_drone_id">Drone ID</Label>
-                  <Input
-                    id="sim_drone_id"
-                    value={currentFlight.drone_id}
-                    onChange={(e) => setCurrentFlight(prev => ({ ...prev, drone_id: e.target.value }))}
-                    placeholder="DRONE_002"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="flight_id">Flight ID</Label>
+                <Input
+                  id="flight_id"
+                  value={currentFlight.id}
+                  onChange={(e) => setCurrentFlight(prev => ({ ...prev, id: e.target.value }))}
+                  placeholder="DRONE_002"
+                />
               </div>
 
               <div className="border-t pt-4">
                 <h4 className="font-semibold mb-3">Add Trajectory Point</h4>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   <Input
                     type="number"
-                    step="0.000001"
-                    placeholder="Latitude"
-                    value={trajectoryInput.lat}
-                    onChange={(e) => setTrajectoryInput(prev => ({ ...prev, lat: Number(e.target.value) }))}
+                    step="0.1"
+                    placeholder="X Position"
+                    value={trajectoryInput.x}
+                    onChange={(e) => setTrajectoryInput(prev => ({ ...prev, x: Number(e.target.value) }))}
                   />
                   <Input
                     type="number"
-                    step="0.000001"
-                    placeholder="Longitude"
-                    value={trajectoryInput.lon}
-                    onChange={(e) => setTrajectoryInput(prev => ({ ...prev, lon: Number(e.target.value) }))}
+                    step="0.1"
+                    placeholder="Y Position"
+                    value={trajectoryInput.y}
+                    onChange={(e) => setTrajectoryInput(prev => ({ ...prev, y: Number(e.target.value) }))}
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   <Input
                     type="number"
-                    placeholder="Altitude (m)"
-                    value={trajectoryInput.alt}
-                    onChange={(e) => setTrajectoryInput(prev => ({ ...prev, alt: Number(e.target.value) }))}
+                    step="0.1"
+                    placeholder="Z Position (altitude)"
+                    value={trajectoryInput.z}
+                    onChange={(e) => setTrajectoryInput(prev => ({ ...prev, z: Number(e.target.value) }))}
                   />
                   <Input
                     type="datetime-local"
-                    value={trajectoryInput.timestamp}
-                    onChange={(e) => setTrajectoryInput(prev => ({ ...prev, timestamp: e.target.value }))}
+                    value={trajectoryInput.time}
+                    onChange={(e) => setTrajectoryInput(prev => ({ ...prev, time: e.target.value }))}
                   />
                 </div>
-                <Button onClick={addTrajectoryPoint} className="mt-2 w-full" size="sm">
+                <Button onClick={addTrajectoryPoint} className="w-full" size="sm">
                   Add Point
                 </Button>
               </div>
 
               <div className="max-h-32 overflow-y-auto">
                 <div className="text-sm text-gray-600">
-                  Trajectory Points ({currentFlight.trajectory.length}):
+                  Trajectory Points ({currentFlight.waypoints.length}):
                 </div>
-                {currentFlight.trajectory.map((point, index) => (
+                {currentFlight.waypoints.map((point, index) => (
                   <div key={index} className="text-xs bg-gray-100 p-2 rounded mt-1">
-                    {point.lat.toFixed(6)}, {point.lon.toFixed(6)}, {point.alt}m @ {new Date(point.timestamp).toLocaleString()}
+                    ({point.x}, {point.y}, {point.z}) @ {new Date(point.time).toLocaleString()}
                   </div>
                 ))}
               </div>
 
               <Button onClick={addSimulatedFlight} className="w-full">
-                Add Simulated Flight
+                Add This Flight to Simulation
               </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Current Simulated Flights List */}
+        {/* Added Simulated Flights List */}
         <Card>
           <CardHeader>
             <CardTitle>Added Simulated Flights ({simulatedFlights.length})</CardTitle>
@@ -400,9 +428,9 @@ const DataGeneration = () => {
               {simulatedFlights.map((flight, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <div className="font-semibold">{flight.flight_id} - {flight.drone_id}</div>
+                    <div className="font-semibold">{flight.id}</div>
                     <div className="text-sm text-gray-600">
-                      {flight.trajectory.length} trajectory points
+                      {flight.waypoints.length} waypoints
                     </div>
                   </div>
                   <Button
@@ -423,7 +451,7 @@ const DataGeneration = () => {
           </CardContent>
         </Card>
 
-        {/* Generate and Run */}
+        {/* Run Analysis */}
         <div className="flex justify-center">
           <Button
             onClick={runDeconfliction}
