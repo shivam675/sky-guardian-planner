@@ -10,6 +10,7 @@ const Navigation = () => {
     { path: '/', label: 'Dashboard' },
     { path: '/data-generation', label: 'Data Generation' },
     { path: '/simulation-history', label: 'Simulation History' },
+    { path: '/conflict-analysis', label: 'Conflict Analysis' },
   ];
 
   return (

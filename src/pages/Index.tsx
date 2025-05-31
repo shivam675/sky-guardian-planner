@@ -1,108 +1,138 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { Plane, Database, History, AlertTriangle } from "lucide-react";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            FlytBase UAV Strategic Deconfliction
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Advanced drone mission planning and conflict detection system for safe autonomous flight operations
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              UAV Deconfliction System
+            </h1>
+            <p className="text-xl text-gray-600">
+              Advanced spatial and temporal conflict detection for drone missions
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-lg">Data Generation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Create and configure drone flight parameters, trajectories, and mission data for simulation
-              </p>
-              <Link to="/data-generation">
-                <Button className="w-full">Generate Data</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-lg">Simulation History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                View previous simulation runs, conflict reports, and resimulate scenarios
-              </p>
-              <Link to="/simulation-history">
-                <Button className="w-full" variant="outline">View History</Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-lg">Conflict Analysis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Analyze spatial and temporal conflicts with advanced visualization tools
-              </p>
-              <Button className="w-full" variant="outline" disabled>
-                Coming Soon
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>System Features</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-gray-600">
-                <li>• Spatial and temporal conflict detection</li>
-                <li>• 2D animated mission visualization</li>
-                <li>• 4D (3D space + time) interactive graphs</li>
-                <li>• JSON-based mission data import</li>
-                <li>• Configurable safety buffers</li>
-                <li>• Real-time conflict reporting</li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">0</div>
-                  <div className="text-sm text-gray-600">Total Simulations</div>
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <Database className="h-8 w-8 text-blue-600" />
+                  <div>
+                    <CardTitle>Data Generation</CardTitle>
+                    <CardDescription>
+                      Create and configure drone mission parameters
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">0</div>
-                  <div className="text-sm text-gray-600">Flights Analyzed</div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Generate primary missions and simulated flight data for conflict analysis.
+                </p>
+                <Link to="/data-generation">
+                  <Button className="w-full">
+                    Generate Mission Data
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <AlertTriangle className="h-8 w-8 text-red-600" />
+                  <div>
+                    <CardTitle>Conflict Analysis</CardTitle>
+                    <CardDescription>
+                      Analyze conflicts with 2D and 4D visualizations
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">0</div>
-                  <div className="text-sm text-gray-600">Conflicts Detected</div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  View detailed conflict analysis with matplotlib and plotly visualizations.
+                </p>
+                <Link to="/conflict-analysis">
+                  <Button className="w-full">
+                    Analyze Conflicts
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <History className="h-8 w-8 text-green-600" />
+                  <div>
+                    <CardTitle>Simulation History</CardTitle>
+                    <CardDescription>
+                      View and manage previous simulation runs
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">0</div>
-                  <div className="text-sm text-gray-600">Safe Routes</div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Access historical simulation data and resimulate scenarios.
+                </p>
+                <Link to="/simulation-history">
+                  <Button className="w-full">
+                    View History
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <Plane className="h-8 w-8 text-purple-600" />
+                  <div>
+                    <CardTitle>System Status</CardTitle>
+                    <CardDescription>
+                      Monitor backend connectivity and system health
+                    </CardDescription>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Frontend</span>
+                    <span className="text-green-600 font-semibold">Active</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Backend (Port 5000)</span>
+                    <span className="text-yellow-600 font-semibold">Check Connection</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center">
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="text-lg font-semibold mb-2">Quick Start</h3>
+                <p className="text-gray-600 mb-4">
+                  1. Generate mission data → 2. Run deconfliction analysis → 3. View conflict analysis
+                </p>
+                <div className="space-x-3">
+                  <Link to="/data-generation">
+                    <Button variant="outline">Start Here</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

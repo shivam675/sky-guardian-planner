@@ -8,6 +8,7 @@ import Navigation from "./components/Navigation";
 import Index from "./pages/Index";
 import DataGeneration from "./pages/DataGeneration";
 import SimulationHistory from "./pages/SimulationHistory";
+import ConflictAnalysis from "./pages/ConflictAnalysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/data-generation" element={<DataGeneration />} />
             <Route path="/simulation-history" element={<SimulationHistory />} />
+            <Route path="/conflict-analysis" element={<ConflictAnalysis />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
